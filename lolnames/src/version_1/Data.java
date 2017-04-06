@@ -1,6 +1,14 @@
 package version_1;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 public class Data {
 
@@ -65,6 +73,7 @@ public class Data {
 			w.prev = tail.prev;
 			tail.prev = w;
 			w.prev.next = w;
+			masterTree.add(w.word);
 		}
 		public void unlink(Word word) {
 			if (word == head || word == tail)
@@ -74,17 +83,29 @@ public class Data {
 			word.next.prev = word.prev;
 		}
 		public void check() {
-			// TODO
+			Word cur = head.next;
+			while (cur != null) {
+				if (masterTree.search(cur.word) == null)
+					add(cur.word);
+				else
+					cur.info = masterTree.search(cur.word);
+				if (!cur.info.isChecked)
+					cur.info = Data.this.check(cur.word);
+				cur = cur.next;
+			}
 		}
 
 		private class Word {
 			public Word next;
 			public Word prev;
 			public String word;
+			public Info info;
 			public Word(String word) {
 				this.word = word;
 				next = null;
 				prev = null;
+				Info results = masterTree.search(word);
+				info = results == null ? new Info() : results;
 			}
 			public boolean isChecked() {
 				return masterTree.search(word).isChecked;
@@ -125,7 +146,7 @@ public class Data {
 		}
 	}
 
-	private class MasterTree implements Iterable {
+	protected class MasterTree implements Iterable {
 		private Node root;
 		private int length;
 
@@ -146,11 +167,19 @@ public class Data {
 			for (int i = level; i < word.length(); i++) {
 				Node n = new Node(new Character(word.charAt(i)));
 				n.parent = cur;
+				if (cur.child == null)
+					cur.child = n;
+				else {
+					Node curChild = cur.child;
+					while (curChild.next != null)
+						curChild = curChild.next;
+					curChild.next = n;
+					n.prev = curChild;
+				}
 				cur = n;
+				length++;
 			}
-			
-			
-			length++;
+			cur.info = new Info();
 		}
 
 		public void add(WordList wl) {
@@ -165,7 +194,7 @@ public class Data {
 				return last.info;
 			return null;
 		}
-		
+
 		private Node getLast(String word) {
 			Node cur = root;
 			for (int i = 0; i < word.length(); i++) {
@@ -189,7 +218,7 @@ public class Data {
 						while (iter.hasNext()) {
 							Node n = iter.next();
 							if (!n.isChecked())
-								check(n.toString());
+								n.info = check(n.toString());
 						}
 					}
 				}
@@ -217,7 +246,6 @@ public class Data {
 			}
 
 			public boolean isTaken() {
-				// if (!info.isChecked) TODO
 				return info.isTaken;
 			}
 
@@ -232,17 +260,6 @@ public class Data {
 					cur = cur.parent;
 				}
 				return s;
-			}
-		}
-
-		private class Info {
-			public boolean isChecked;
-			public boolean isTaken;
-			public String expires;
-			public Info() {
-				isChecked = false;
-				isTaken = false;
-				expires = null;
 			}
 		}
 
@@ -290,16 +307,69 @@ public class Data {
 			public int getIndex() {
 				return index;
 			}
-
 		}
 	}
+
+	private class Info {
+		public boolean isChecked;
+		public boolean isTaken;
+		public String expires;
+		public Info() {
+			isChecked = false;
+			isTaken = false;
+			expires = null;
+		}
+	}
+
+	private Info check(String word) {
+		URL site;
+		try {
+			site = new URL("http://lolnamecheck.jj.ai/main/check?username=" + word + "&region_name=na&_=1491495037161");
+			BufferedReader in;
+			int count = 0;
+
+			while (true) {
+				count++;
+				try {
+					in = new BufferedReader(new InputStreamReader(site.openStream()));
+
+					String inputLine = "";
+					while ((inputLine = in.readLine()) != null) {
+					}
+					new Data();
+					Info info = new Info();
+					if (!inputLine.contains("is unavailable.")) {
+						info.isChecked = true;
+						info.isTaken = true;
+						int loc = inputLine.indexOf("Cleanup date (if inactive): ") + "Cleanup date (if inactive): ".length();
+						info.expires = inputLine.substring(loc, loc + 10);
+						in.close();
+						return info;
+					} else {
+						info.isChecked = true;
+						info.isTaken = false;
+						info.expires = null;
+						in.close();
+						return info;
+					}
+
+				} catch (IOException e) {
+					try {
+						TimeUnit.SECONDS.sleep(1);
+					} catch (InterruptedException e1) {
+						System.out.println("ERROR: sleep was interrupted, didn't check " + word);
+					}
+					System.out.println(word + " is sleeping " + count + " seconds...");
+				}
+			}
+		} catch (MalformedURLException e1) {
+			System.out.println("ERROR: programmer messed up or lolnamecheck.jj.ai changed url or internet is down");
+		}
+		throw new IllegalStateException("IDK how the program got here but it did...");
+	}
+
 	private static String getName(String path) {
 		// TODO
 		return null;
-	}
-
-	private static boolean check(String word) {
-		// TODO
-		return false;
 	}
 }
