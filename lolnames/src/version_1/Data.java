@@ -73,6 +73,9 @@ public class Data {
 			word.prev.next = word.next;
 			word.next.prev = word.prev;
 		}
+		public void check() {
+			// TODO
+		}
 
 		private class Word {
 			public Word next;
