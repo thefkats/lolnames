@@ -13,8 +13,12 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 public class GUI {
+	private static FileManager fm;
+	private static Data data;
 	public static void main(String[] args) throws IOException, URISyntaxException {
-
+		data = new Data();
+		fm = new FileManager("", data);
+		
 		JFrame frame = new JFrame();
 		frame.setVisible(true);
 		frame.setSize(500, 500);
@@ -43,7 +47,7 @@ public class GUI {
 					JFileChooser fc = new JFileChooser();
 					int returnVal = fc.showOpenDialog(frame2);
 					File f = fc.getSelectedFile();
-					System.out.println(f);
+					fm.importFile(f);
 				}
 			}.start();
 		}

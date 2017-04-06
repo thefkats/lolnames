@@ -321,6 +321,11 @@ public class Data {
 		}
 	}
 
+	public String toString() {
+		
+		return null;
+	}
+	
 	private Info check(String word) {
 		URL site;
 		try {
