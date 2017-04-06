@@ -12,19 +12,31 @@ import java.util.concurrent.TimeUnit;
 
 public class Data {
 
+	public static void main(String[] args) {
+		Data d = new Data();
+		WordList wl = d.addWordList("hello");
+		wl.add("hello");
+		wl.add("help");
+		wl.add("hella");
+		wl.add("abc");
+		//d.print();
+		 System.out.println(d.toString());
+	}
+
 	private boolean backgroundCheckRunning;
 	private WordList wordListHead;
 	private MasterTree masterTree;
 
 	public Data() {
-		wordListHead = null;
 		masterTree = new MasterTree();
+		wordListHead = new WordList(null);
 		backgroundCheckRunning = true;
 	}
 
 	public WordList addWordList(String path) {
 		WordList wl = new WordList(path);
-		wl.next = wordListHead.next;
+		if (wordListHead.next != null)
+			wl.next = wordListHead.next;
 		wordListHead.next = wl;
 		return wl;
 	}
@@ -189,6 +201,8 @@ public class Data {
 		}
 
 		public Info search(String word) {
+			if (word == null)
+				return null;
 			Node last = getLast(word);
 			if (word.equals(last.toString()))
 				return last.info;
@@ -196,6 +210,8 @@ public class Data {
 		}
 
 		private Node getLast(String word) {
+			if (word == null)
+				return root;
 			Node cur = root;
 			for (int i = 0; i < word.length(); i++) {
 				String letter = word.charAt(i) + "";
@@ -286,16 +302,21 @@ public class Data {
 
 			@Override
 			public Node next() {
-				if (!hasNext())
+				if (!hasNext() || cur == null)
 					throw new IllegalStateException("Does not have next element.");
+				if (index == 0) {
+					index++;
+					return cur;
+				}
 				index++;
 				if (cur.child != null)
 					cur = cur.child;
 				else if (cur.next != null)
 					cur = cur.next;
 				else {
-					while (cur.next == null)
+					while (cur.next == null) {
 						cur = cur.parent;
+					}
 					cur = cur.next;
 				}
 				while (cur.info == null)
@@ -321,11 +342,36 @@ public class Data {
 		}
 	}
 
-	public String toString() {
-		
-		return null;
+	public void print() {
+		MasterTree.Node cur = masterTree.root;
+		printHelper(cur.child, "");
 	}
-	
+
+	private void printHelper(MasterTree.Node n, String level) {
+		if (n == null) {
+			System.out.println(level + "nul");
+			return;
+		}
+		System.out.println(level + n.c.toString());
+		if (n.child != null)
+			printHelper(n.child, level + "\t");
+		if (n.next != null)
+			printHelper(n.next, level);
+	}
+
+	public String toString() {
+		Iterator iter = masterTree.iterator();
+		String output = "";
+		while (iter.hasNext()) {
+			MasterTree.Node n = (MasterTree.Node) iter.next();
+			String next = (n == null) ? null : n.toString();
+			String toAdd = (next == null) ? "(error)\n" : next + "\n";
+			System.out.println(toAdd);
+			output += toAdd;
+		}
+		return output;
+	}
+
 	private Info check(String word) {
 		URL site;
 		try {

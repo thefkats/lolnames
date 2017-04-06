@@ -24,6 +24,7 @@ public class FileManager {
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
+				System.out.println("-Finished importing!");
 			}
 		}.start();
 

@@ -35,7 +35,9 @@ public class GUI {
 
 	static class run implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			System.out.println("run");
+			System.out.println("[Run]");
+			data.print();
+			System.out.println(data.toString());
 		}
 	}
 
@@ -43,6 +45,7 @@ public class GUI {
 		public void actionPerformed(ActionEvent e) {
 			new Thread() {
 				public void run() {
+					System.out.println("[Import]");
 					JFrame frame2 = new JFrame();
 					JFileChooser fc = new JFileChooser();
 					int returnVal = fc.showOpenDialog(frame2);
