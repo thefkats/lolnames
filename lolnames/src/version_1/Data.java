@@ -14,11 +14,11 @@ public class Data {
 	private class WordList {
 		public WordList next;
 		public WordList prev;
-		public String name;
+		public String path;
 		private Word head;
 		private Word tail;
-		public WordList(String name) {
-			this.name = name;
+		public WordList(String path) {
+			this.path = path;
 			next = null;
 			prev = null;
 			head = new Word(null);
@@ -27,7 +27,7 @@ public class Data {
 			tail.prev = head;
 		}
 		public boolean loadWords() {
-			// TODO
+			// TODO make a thread
 			return false;
 		}
 		public Word get(int index) {
