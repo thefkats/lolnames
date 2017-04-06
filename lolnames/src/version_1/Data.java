@@ -3,9 +3,11 @@ package version_1;
 public class Data {
 
 	private WordList wordListHead;
-
+	private MasterTree masterTree;
+	
 	public Data() {
 		wordListHead = null;
+		masterTree = new MasterTree();
 
 	}
 
@@ -48,29 +50,37 @@ public class Data {
 				next = null;
 				prev = null;
 			}
+			public boolean isChecked() {
+				return masterTree.search(word).isChecked;
+			}
 		}
 	}
 
 	private class MasterTree {
 		private Node root;
-		
+
 		public MasterTree() {
 			root = new Node(null);
 		}
-		
+
 		public MasterTree(WordList wl) {
 			root = null;
 			add(wl);
 		}
-		
+
 		public void add(String word) {
 			// TODO
 		}
-		
+
 		public void add(WordList wl) {
 			// TODO
 		}
-		
+
+		public Info search(String word) {
+			// TODO
+			return null;
+		}
+
 		private class Node {
 			public Node parent;
 			public Node child;
@@ -95,14 +105,14 @@ public class Data {
 				// if (!info.isChecked) TODO
 				return info.isTaken;
 			}
-
-			private class Info {
-				public boolean isChecked;
-				public boolean isTaken;
-				public Info() {
-					isChecked = false;
-					isTaken = false;
-				}
+		}
+		
+		private class Info {
+			public boolean isChecked;
+			public boolean isTaken;
+			public Info() {
+				isChecked = false;
+				isTaken = false;
 			}
 		}
 	}
