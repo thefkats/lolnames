@@ -32,13 +32,11 @@ public class Data {
 			// TODO
 			return null;
 		}
-		public boolean add(Word word) {
+		public void add(Word word) {
 			// TODO
-			return false;
 		}
-		public boolean remove(Word word) {
+		public void remove(Word word) {
 			// TODO
-			return false;
 		}
 
 		private class Word {
@@ -53,39 +51,59 @@ public class Data {
 		}
 	}
 
-	private class Node {
-		public Node parent;
-		public Node child;
-		public Node next;
-		public Node prev;
-		public char c;
-		private Info info;
-		public Node(char c) {
-			this.c = c;
-			parent = null;
-			child = null;
-			next = null;
-			prev = null;
-			info = null;
+	private class MasterTree {
+		private Node root;
+		
+		public MasterTree() {
+			root = new Node(null);
 		}
 		
-		public boolean isChecked() {
-			return info.isChecked;
+		public MasterTree(WordList wl) {
+			root = null;
+			add(wl);
 		}
 		
-		public boolean isTaken() {
-			// if (!info.isChecked) TODO
-			return info.isTaken;
+		public void add(String word) {
+			// TODO
 		}
+		
+		public void add(WordList wl) {
+			// TODO
+		}
+		
+		private class Node {
+			public Node parent;
+			public Node child;
+			public Node next;
+			public Node prev;
+			public Character c;
+			private Info info;
+			public Node(Character c) {
+				this.c = c;
+				parent = null;
+				child = null;
+				next = null;
+				prev = null;
+				info = null;
+			}
 
-		private class Info {
-			public boolean isChecked;
-			public boolean isTaken;
-			public Info() {
-				isChecked = false;
-				isTaken = false;
+			public boolean isChecked() {
+				return info.isChecked;
+			}
+
+			public boolean isTaken() {
+				// if (!info.isChecked) TODO
+				return info.isTaken;
+			}
+
+			private class Info {
+				public boolean isChecked;
+				public boolean isTaken;
+				public Info() {
+					isChecked = false;
+					isTaken = false;
+				}
 			}
 		}
 	}
-
 }
