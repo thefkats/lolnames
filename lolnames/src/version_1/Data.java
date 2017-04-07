@@ -74,6 +74,9 @@ public class Data {
 			tail.prev = head;
 			length = 0;
 		}
+		public int length() {
+			return length;
+		}
 		public Word get(int index) {
 			if (index < 0 || index >= length)
 				throw new IllegalArgumentException("Tried getting index: " + index + ", but valid indexes are 0 through " + (length - 1));

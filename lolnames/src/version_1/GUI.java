@@ -19,7 +19,7 @@ public class GUI {
 	private static FileManager fm;
 	private static Data data;
 	public static void main(String[] args) throws IOException, URISyntaxException {
-		data = new Data(20);
+		data = new Data(100);
 		fm = new FileManager("", data);
 
 		JFrame frame = new JFrame();
