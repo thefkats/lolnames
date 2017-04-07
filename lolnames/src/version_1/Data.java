@@ -13,24 +13,37 @@ import java.util.concurrent.TimeUnit;
 public class Data {
 
 	public static void main(String[] args) {
-		Data d = new Data();
+		Data d = new Data(3);
 		WordList wl = d.addWordList("hello");
 		wl.add("hello");
 		wl.add("help");
 		wl.add("hella");
 		wl.add("abc");
-		//d.print();
-		 System.out.println(d.toString());
+		wl.add("Albania2314");
+		// d.print();
+		System.out.println(d.toString());
+		wl.check();
 	}
 
+	private int threadsRunning;
+	private int threadsLimit;
 	private boolean backgroundCheckRunning;
 	private WordList wordListHead;
 	private MasterTree masterTree;
 
-	public Data() {
+	public Data(int numThreads) {
 		masterTree = new MasterTree();
 		wordListHead = new WordList(null);
-		backgroundCheckRunning = true;
+		backgroundCheckRunning = false;
+		threadsLimit = numThreads;
+	}
+
+	public void run() {
+		wordListHead.next.check();
+	}
+	
+	public WordList getFiles() {
+		return wordListHead.next;
 	}
 
 	public WordList addWordList(String path) {
@@ -96,18 +109,42 @@ public class Data {
 		}
 		public void check() {
 			Word cur = head.next;
-			while (cur != null) {
-				if (masterTree.search(cur.word) == null)
-					add(cur.word);
-				else
-					cur.info = masterTree.search(cur.word);
-				if (!cur.info.isChecked)
-					cur.info = Data.this.check(cur.word);
+			while (cur != tail) {
+				while (threadsRunning >= threadsLimit)
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				WordCheck wc = new WordCheck(cur);
+				wc.start();
 				cur = cur.next;
 			}
 		}
 
-		private class Word {
+		private class WordCheck extends Thread {
+			private Word w;
+			public WordCheck(Word word) {
+				super();
+				this.w = word;
+			}
+
+			@Override
+			public void run() {
+				threadsRunning++;
+				System.out.println("- (" + threadsRunning + ") Checking: " + w.word);
+				if (masterTree.search(w.word) == null)
+					add(w.word);
+				else
+					w.info = masterTree.search(w.word);
+				if (!w.info.isChecked)
+					w.info = Data.this.check(w.word);
+				System.out.println(" - " + w.word + ": " + w.info.toString());
+				threadsRunning--;
+			}
+		}
+
+		protected class Word {
 			public Word next;
 			public Word prev;
 			public String word;
@@ -189,8 +226,8 @@ public class Data {
 					n.prev = curChild;
 				}
 				cur = n;
-				length++;
 			}
+			length++;
 			cur.info = new Info();
 		}
 
@@ -227,8 +264,11 @@ public class Data {
 		}
 
 		public void backgroundCheck() {
+			if (threadsRunning >= threadsLimit)
+				return;
 			new Thread() {
 				public void run() {
+					threadsRunning++;
 					while (backgroundCheckRunning) {
 						MasterTreeIterator iter = masterTree.iterator();
 						while (iter.hasNext()) {
@@ -237,6 +277,7 @@ public class Data {
 								n.info = check(n.toString());
 						}
 					}
+					threadsRunning--;
 				}
 			}.start();
 		}
@@ -297,7 +338,7 @@ public class Data {
 
 			@Override
 			public boolean hasNext() {
-				return index < length - 1;
+				return index < length;
 			}
 
 			@Override
@@ -331,7 +372,7 @@ public class Data {
 		}
 	}
 
-	private class Info {
+	protected class Info {
 		public boolean isChecked;
 		public boolean isTaken;
 		public String expires;
@@ -339,6 +380,9 @@ public class Data {
 			isChecked = false;
 			isTaken = false;
 			expires = null;
+		}
+		public String toString() {
+			return isChecked ? isTaken ? "Name taken, expires: " + expires : "Name available" : "Not checked.";
 		}
 	}
 
@@ -366,7 +410,6 @@ public class Data {
 			MasterTree.Node n = (MasterTree.Node) iter.next();
 			String next = (n == null) ? null : n.toString();
 			String toAdd = (next == null) ? "(error)\n" : next + "\n";
-			System.out.println(toAdd);
 			output += toAdd;
 		}
 		return output;
@@ -385,11 +428,13 @@ public class Data {
 					in = new BufferedReader(new InputStreamReader(site.openStream()));
 
 					String inputLine = "";
-					while ((inputLine = in.readLine()) != null) {
+					String toAdd;
+					while ((toAdd = in.readLine()) != null) {
+						inputLine += toAdd;
 					}
-					new Data();
+					new Data(0);
 					Info info = new Info();
-					if (!inputLine.contains("is unavailable.")) {
+					if (!inputLine.contains("is (probably) available!")) {
 						info.isChecked = true;
 						info.isTaken = true;
 						int loc = inputLine.indexOf("Cleanup date (if inactive): ") + "Cleanup date (if inactive): ".length();
@@ -417,10 +462,5 @@ public class Data {
 			System.out.println("ERROR: programmer messed up or lolnamecheck.jj.ai changed url or internet is down");
 		}
 		throw new IllegalStateException("IDK how the program got here but it did...");
-	}
-
-	private static String getName(String path) {
-		// TODO
-		return null;
 	}
 }

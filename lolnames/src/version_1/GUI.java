@@ -3,6 +3,8 @@ package version_1;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -16,9 +18,9 @@ public class GUI {
 	private static FileManager fm;
 	private static Data data;
 	public static void main(String[] args) throws IOException, URISyntaxException {
-		data = new Data();
+		data = new Data(20);
 		fm = new FileManager("", data);
-		
+
 		JFrame frame = new JFrame();
 		frame.setVisible(true);
 		frame.setSize(500, 500);
@@ -31,13 +33,18 @@ public class GUI {
 		importButton.addActionListener(new imports());
 		pan.add(importButton, FlowLayout.LEFT);
 		frame.getContentPane().add(pan);
+
+		frame.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				fm.save();
+			}
+		});
+
 	}
 
 	static class run implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			System.out.println("[Run]");
-			data.print();
-			System.out.println(data.toString());
+			data.run();
 		}
 	}
 
