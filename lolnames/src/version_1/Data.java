@@ -121,6 +121,12 @@ public class Data {
 				cur = cur.next;
 			}
 		}
+		public void sortByExpired() {
+			// TODO
+		}
+		public void sortByName() {
+			// TODO
+		}
 
 		private class WordCheck extends Thread {
 			private Word w;

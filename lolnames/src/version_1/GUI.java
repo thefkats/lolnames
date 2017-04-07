@@ -14,6 +14,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+// TODO: add window for list of files in sources, add loading function to file manager, add sorting buttons, add sorting functions (in data)
 public class GUI {
 	private static FileManager fm;
 	private static Data data;

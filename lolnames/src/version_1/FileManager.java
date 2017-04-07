@@ -42,7 +42,7 @@ public class FileManager {
 			try {
 				PrintWriter pw = new PrintWriter(new File(wl.path));
 				Data.WordList.Word word = wl.get(0);
-				while (word != null) {
+				while (word.word != null) {
 					pw.println(word.word + " " + word.info.toString());
 					word = word.next;
 				}
