@@ -17,6 +17,8 @@ public class FileManager {
 	}
 
 	public void importFile(File f) {
+		if (f.getName().equals(".DS_Store"))
+			return;
 		new Thread() {
 			public void run() {
 				Data.WordList wl = data.addWordList(FileManager.getName(f.getPath()));
@@ -30,7 +32,7 @@ public class FileManager {
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
-				System.out.println("-Finished importing!");
+				System.out.println("-Finished importing (" + f.getName() + ")!");
 			}
 		}.start();
 	}
@@ -61,15 +63,17 @@ public class FileManager {
 	protected static boolean checkWord(String word) {
 		if (word == null)
 			return false;
+		String validChars = "1234567890abcdefghijklmnopqrstuvwxyz";
+		for (int i = 0; i < word.length(); i++)
+			if (!validChars.contains("" + word.charAt(i)))
+				return false;
 		if (word.equals(""))
 			return false;
-		if (word.length() < 3)
-			return false;
-		if (word.contains(" ") || word.contains("&"))
+		if (word.length() < 3 || word.length() > 16)
 			return false;
 		return true;
 	}
-	
+
 	public void load() {
 		File sources = new File("sources");
 		for (File f : sources.listFiles()) {
@@ -81,7 +85,7 @@ public class FileManager {
 		String name = path.substring(path.lastIndexOf("/") + 1, (path.lastIndexOf(".") == -1) ? path.length() : path.lastIndexOf("."));
 		return "sources/" + name + ".txt";
 	}
-	
+
 	public static void main(String[] args) {
 		File sources = new File("Sources");
 		ArrayList<String> arr = new ArrayList<String>();
@@ -92,7 +96,7 @@ public class FileManager {
 					String line = scan.nextLine();
 					if (arr.contains(line))
 						System.out.println(line);
-					else 
+					else
 						arr.add(line);
 				}
 			} catch (FileNotFoundException e) {

@@ -19,7 +19,7 @@ public class GUI {
 	private static FileManager fm;
 	private static Data data;
 	public static void main(String[] args) throws IOException, URISyntaxException {
-		data = new Data(100);
+		data = new Data(5);
 		fm = new FileManager("", data);
 
 		JFrame frame = new JFrame();
@@ -45,7 +45,10 @@ public class GUI {
 
 	static class run implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
+			System.out.println("[Run]");
 			data.run();
+			System.out.println(data.toString());
+			System.out.println("[Finished Run]");
 		}
 	}
 

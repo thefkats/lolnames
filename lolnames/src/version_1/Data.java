@@ -5,9 +5,19 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
 public class Data {
@@ -41,7 +51,7 @@ public class Data {
 	public void run() {
 		wordListHead.next.check();
 	}
-	
+
 	public WordList getFiles() {
 		return wordListHead.next;
 	}
@@ -92,7 +102,7 @@ public class Data {
 			}
 			return cur;
 		}
-		public void add(String word) {
+		public void add(String word) { // TODO prevent duplicates
 			if (word == null)
 				throw new IllegalArgumentException("Null string");
 			length++;
@@ -122,6 +132,11 @@ public class Data {
 				WordCheck wc = new WordCheck(cur);
 				wc.start();
 				cur = cur.next;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		public void sortByExpired() {
@@ -273,7 +288,7 @@ public class Data {
 		}
 
 		public void backgroundCheck() {
-			if (threadsRunning >= threadsLimit)
+			if (threadsRunning >= threadsLimit - 1)
 				return;
 			new Thread() {
 				public void run() {
@@ -340,7 +355,7 @@ public class Data {
 
 			public MasterTreeIterator() {
 				cur = root;
-				while (cur.info == null)
+				while (cur != null && cur.info == null)
 					cur = cur.child;
 				index = 0;
 			}
@@ -391,7 +406,7 @@ public class Data {
 			expires = null;
 		}
 		public String toString() {
-			return isChecked ? isTaken ? "Name taken, expires: " + expires : "Name available" : "Not checked.";
+			return isChecked ? isTaken ? "Name taken, expires: " + epochToDate(expires) : "Name available" : "Not checked.";
 		}
 	}
 
@@ -424,52 +439,121 @@ public class Data {
 		return output;
 	}
 
-	private Info check(String word) {
-		URL site;
+	
+	
+	private Info check(String word) { // TODO find limit for this site
 		try {
-			site = new URL("http://lolnamecheck.jj.ai/main/check?username=" + word + "&region_name=na&_=1491495037161");
-			BufferedReader in;
-			int count = 0;
-
-			while (true) {
-				count++;
+			URL url = new URL("http://lolinactive.com/LoLInactive.php");
+			String returnValue = "";
+			while (returnValue.length() == 0) {
 				try {
-					in = new BufferedReader(new InputStreamReader(site.openStream()));
-
-					String inputLine = "";
-					String toAdd;
-					while ((toAdd = in.readLine()) != null) {
-						inputLine += toAdd;
+					URLConnection con = url.openConnection();
+					HttpURLConnection http = (HttpURLConnection) con;
+					http.setRequestMethod("POST");
+					http.setDoOutput(true);
+					Map<String, String> arguments = new HashMap<>();
+					arguments.put("region", "na");
+					arguments.put("summonerName", word);
+					StringJoiner sj = new StringJoiner("&");
+					for (Map.Entry<String, String> entry : arguments.entrySet())
+						sj.add(URLEncoder.encode(entry.getKey(), "UTF-8") + "=" + URLEncoder.encode(entry.getValue(), "UTF-8"));
+					byte[] out = sj.toString().getBytes(StandardCharsets.UTF_8);
+					int length = out.length;
+					http.setFixedLengthStreamingMode(length);
+					http.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+					http.connect();
+					try (OutputStream os = http.getOutputStream()) {
+						os.write(out);
 					}
-					new Data(0);
-					Info info = new Info();
-					if (!inputLine.contains("is (probably) available!")) {
-						info.isChecked = true;
-						info.isTaken = true;
-						int loc = inputLine.indexOf("Cleanup date (if inactive): ") + "Cleanup date (if inactive): ".length();
-						info.expires = inputLine.substring(loc, loc + 10);
-						in.close();
-						return info;
-					} else {
-						info.isChecked = true;
-						info.isTaken = false;
-						info.expires = null;
-						in.close();
-						return info;
-					}
-
-				} catch (IOException e) {
-					try {
-						TimeUnit.SECONDS.sleep(1);
-					} catch (InterruptedException e1) {
-						System.out.println("ERROR: sleep was interrupted, didn't check " + word);
-					}
-					System.out.println(word + " is sleeping " + count + " seconds...");
+					Scanner scan = new Scanner(http.getInputStream());
+					while (scan.hasNextLine())
+						returnValue += scan.nextLine();
+					scan.close();
+					http.disconnect();
+					
+				} catch (Exception e) {
+					e.printStackTrace();
+					Thread.sleep(60000);
 				}
 			}
-		} catch (MalformedURLException e1) {
-			System.out.println("ERROR: programmer messed up or lolnamecheck.jj.ai changed url or internet is down");
+			Info info = new Info();
+			info.isChecked = true;
+			info.isTaken = !returnValue.contains(",\"ERROR\":");
+			if (info.isTaken) {
+				int loc = returnValue.indexOf("\"revisionDate\":") + 15;
+				long i = Long.parseLong(returnValue.substring(loc, loc + 10));
+				info.expires = "" + (i + 47335384);
+			}
+			// TODO account for different cleanup times for different summoner
+			// levels
+			return info;
+		} catch (Exception e) {
+			System.out.println("There was an error at word: " + word);
+			e.printStackTrace();
 		}
-		throw new IllegalStateException("IDK how the program got here but it did...");
+		return null;
 	}
+
+	public static String epochToDate(String s) {
+		long epoch = Long.parseLong(s);
+		return new java.text.SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format(new java.util.Date(epoch * 1000));
+
+	}
+
+	// TODO try op.gg and lolking and other sites
+	
+	// private Info check(String word) {
+	// URL site;
+	// try {
+	// site = new URL("http://lolnamecheck.jj.ai/main/check?username=" + word +
+	// "&region_name=na&_=1491495037161");
+	// BufferedReader in;
+	// int count = 0;
+	//
+	// while (true) {
+	// count++;
+	// try {
+	// in = new BufferedReader(new InputStreamReader(site.openStream()));
+	//
+	// String inputLine = "";
+	// String toAdd;
+	// while ((toAdd = in.readLine()) != null) {
+	// inputLine += toAdd;
+	// }
+	// new Data(0);
+	// Info info = new Info();
+	// if (!inputLine.contains("is (probably) available!")) {
+	// info.isChecked = true;
+	// info.isTaken = true;
+	// int loc = inputLine.indexOf("Cleanup date (if inactive): ") + "Cleanup
+	// date
+	// (if inactive): ".length();
+	// info.expires = inputLine.substring(loc, loc + 10);
+	// in.close();
+	// return info;
+	// } else {
+	// info.isChecked = true;
+	// info.isTaken = false;
+	// info.expires = null;
+	// in.close();
+	// return info;
+	// }
+	//
+	// } catch (IOException e) {
+	// try {
+	// TimeUnit.SECONDS.sleep(1);
+	// } catch (InterruptedException e1) {
+	// System.out.println("ERROR: sleep was interrupted, didn't check " + word);
+	// }
+	// System.out.println(word + " is sleeping " + count + " seconds...");
+	// }
+	// }
+	// } catch (MalformedURLException e1) {
+	// System.out.println("ERROR: programmer messed up or lolnamecheck.jj.ai
+	// changed
+	// url or internet is down");
+	// }
+	// throw new IllegalStateException("IDK how the program got here but it
+	// did...");
+	// }
 }
