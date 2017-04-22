@@ -1,22 +1,18 @@
 package takennames;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.LinkedHashSet;
-import java.util.Scanner;
+import java.text.DecimalFormat;
 
-public class TakenNames {
-	private LinkedHashSet<Account> names;
+public class TakenNames implements ISave {
+	private UserInfo users;
 	private int threadsRunning;
 	private int threadsLimit;
 	private Stat stats;
-	private static String defaultFileName = "takennames.txt";
+	private boolean saving;
 
 	public TakenNames() {
 		setup(1);
@@ -29,10 +25,11 @@ public class TakenNames {
 	private void setup(int threadsLimit) {
 		if (threadsLimit < 1)
 			throw new IllegalArgumentException("TakenNames constructor must be more than 0.");
-		names = new LinkedHashSet<Account>();
+		users = new UserInfo();
 		threadsRunning = 1;
 		this.threadsLimit = threadsLimit;
 		stats = new Stat();
+		saving = false;
 	}
 
 	private class Stat {
@@ -44,6 +41,10 @@ public class TakenNames {
 		 * Number of id's checked so far.
 		 */
 		public int numChecked;
+		/**
+		 * Time the last run call took.
+		 */
+		public long actualTime;
 		public Stat() {
 			timeRunning = 0;
 			numChecked = 0;
@@ -51,40 +52,53 @@ public class TakenNames {
 		public Stat(long timeRunning, int numChecked) {
 			this.timeRunning = timeRunning;
 			this.numChecked = numChecked;
+			actualTime = 0;
 		}
-		public double checkRate() {
+		public double getRate() {
+			if (numChecked == 0)
+				return 0;
 			return (timeRunning / 1000.0) / numChecked;
 		}
+		public double getRealRate() {
+			if (numChecked == 0)
+				return 0;
+			return numChecked / (actualTime / 1000.0);
+		}
+		public double getTimePer() {
+			if (numChecked == 0)
+				return 0;
+			return numChecked / (timeRunning / 1000.0);
+		}
+		public String toBriefString() {
+			DecimalFormat df = new DecimalFormat("#####0.0##");
+			return "[Checked: " + numChecked + "]\t[Rate: " + df.format(getRealRate()) + " checks/second]\t[Time: " + timeFormat(actualTime)
+					+ "]\t[Total: " + timeFormat(timeRunning) + "]";
+		}
 		public String toString() {
-			return "Time spent waiting: " + timeRunning + "\nNumber of id's checked: " + numChecked + "\nAverage rate: " + checkRate()
-					+ " checks/second";
+			return "Number of IDs checked: " + numChecked + "\nTime spent waiting: " + timeFormat(timeRunning) + "\nAverage rate: " + getRate()
+					+ " checks/second\nTime per check: " + getTimePer() + "s\nTime of the last run: " + timeFormat(actualTime);
 		}
 	}
 
-	public class Account {
-		public String name;
-		public int id;
-		public Account(String name, int id) {
-			this.name = name;
-			this.id = id;
-		}
+	public static String timeFormat(long milliseconds) {
+		double[] arr = new double[4];
+		arr[0] = milliseconds / 1000.0;
+		arr[1] = arr[0] / 60;
+		arr[0] = arr[0] % 60;
+		arr[2] = arr[1] / 60;
+		arr[1] = arr[1] % 60;
+		arr[3] = arr[2] / 24;
+		arr[2] = arr[2] % 60;
+		String[] arrString = {"s", "m", "h", "d"};
 
-		public boolean equals(Account a) {
-			if (a == null)
-				return false;
-			if (a.id != id)
-				return false;
-			if (a.name == null)
-				return name == null;
-			if (!a.name.equals(name))
-				return false;
-			return true;
-		}
-
-		@Override
-		public String toString() {
-			return name + "," + id;
-		}
+		int first = 0;
+		for (int i = arr.length - 1; i > 0; i--)
+			if (arr[i] >= 1)
+				first = i;
+		if (first != 0)
+			arr[first] = (int) arr[first];
+		DecimalFormat df = new DecimalFormat("#0.##");
+		return df.format(arr[first]) + arrString[first] + ((first == 0) ? "" : ", " + df.format(arr[first - 1]) + arrString[first - 1]);
 	}
 
 	/**
@@ -93,6 +107,10 @@ public class TakenNames {
 	 */
 	public void run() {
 		run(1, 70000000);
+	}
+
+	public void run(int numChecks) {
+		run(users.size(), users.size() + numChecks);
 	}
 
 	/**
@@ -104,20 +122,34 @@ public class TakenNames {
 	 *            ending number to stop checking (not checked)
 	 */
 	public void run(int start, int end) {
+		long startTime = System.currentTimeMillis();
 		if (start < 1)
 			start = 1;
 		if (start > end)
 			throw new IllegalArgumentException("Start number is greater than ending index: " + start + "," + end);
 		System.out.print("[");
-		for (int i = start; i < end / threadsLimit; i++)
+		for (int i = 0; i < (end - start) / threadsLimit; i++)
 			System.out.print(" ");
 		System.out.print("]\r ");
+
+		Stat curStat = new Stat(stats.timeRunning, stats.numChecked);
+		long curStatTime = System.currentTimeMillis();
 		for (int i = start; i < end; i++) {
-			boolean check = true;
-			for (Account a : names)
-				if (a.id == i)
-					check = false;
-			if (check)
+			if (i % 1000 == 0) {
+				curStat.actualTime = System.currentTimeMillis() - curStatTime;
+				curStatTime = System.currentTimeMillis();
+				curStat.numChecked = stats.numChecked - curStat.numChecked;
+				curStat.timeRunning = stats.timeRunning - curStat.timeRunning;
+				System.out.println("[Number: " + i + "]\t" + curStat.toBriefString());
+				curStat.numChecked = stats.numChecked;
+				if (curStat.numChecked != 0) {
+					save(null);
+					System.out.println("[Save time: " + timeFormat((System.currentTimeMillis() - curStatTime)) + "]");
+					curStatTime = System.currentTimeMillis();
+				}
+				System.out.print(" ");
+			}
+			if (!users.contains(i))
 				check(i);
 			while (threadsRunning > threadsLimit)
 				try {
@@ -135,6 +167,7 @@ public class TakenNames {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+		stats.actualTime = System.currentTimeMillis() - startTime;
 	}
 
 	/**
@@ -142,13 +175,12 @@ public class TakenNames {
 	 * 
 	 * @return list of names and their ids (not repeated)
 	 */
-	public LinkedHashSet<Account> getNames() {
-		return names;
+	public UserInfo getUsers() {
+		return users;
 	}
 
 	private void check(int i) {
 		while (threadsRunning > threadsLimit) {
-			System.out.println(threadsRunning + "," + threadsLimit);
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
@@ -162,9 +194,9 @@ public class TakenNames {
 				String name;
 				if ((name = checkHelper(i)) != null)
 					if (name.length() > 16)
-						names.add(new Account("-", i));
+						users.add(i + ",-,-1");
 					else
-						names.add(new Account(name, i));
+						users.add(i + "," + name + ",0");
 				threadsRunning--;
 
 				stats.timeRunning += System.currentTimeMillis() - startTime;
@@ -213,7 +245,7 @@ public class TakenNames {
 					}
 					in.close();
 					inputLine = inputLine.substring(inputLine.indexOf("<title>") + 7);
-					return inputLine.substring(0, inputLine.indexOf(' '));
+					return inputLine.substring(0, inputLine.indexOf('-')).trim();
 				} catch (Exception e) {
 					try {
 						Thread.sleep(1000);
@@ -228,91 +260,35 @@ public class TakenNames {
 		}
 	}
 
-	/**
-	 * Load file from default directory (file name is "takennames.txt").
-	 */
-	public void load() {
-		load("");
-	}
-
 	public String getStats() {
 		return stats.toString();
 	}
 
-	/**
-	 * Load file to specified folder (file name is "takennames.txt").
-	 * 
-	 * @param path
-	 *            path to directory, should end in "/"
-	 */
+	@Override
+	public boolean save(String path) {
+		if (saving == true)
+			return false;
+		saving = true;
+		users.save(path);
+		saving = false;
+		return true;
+	}
+
+	@Override
 	public void load(String path) {
-		File file = new File(path + defaultFileName);
-		if (!file.exists())
-			try {
-				PrintWriter pw = new PrintWriter(file);
-				pw.print("");
-				pw.close();
-			} catch (FileNotFoundException e) {
-				throw new IllegalStateException("Could not create " + defaultFileName + " at path: " + file.getAbsolutePath());
-			}
-		try {
-			Scanner scan = new Scanner(file);
-			while (scan.hasNextLine()) {
-				Account a = stringToAccount(scan.nextLine());
-				if (a != null)
-					names.add(a);
-			}
-			scan.close();
-		} catch (FileNotFoundException e) {
-			throw new IllegalStateException("For some reason the previous if statement messed up... not sure what happened but goodluck.");
-		}
+		users.load(path);
 	}
 
-	private Account stringToAccount(String string) {
-		Account a = new Account(string.substring(0, string.indexOf(',')).trim(), Integer.parseInt(string.substring(string.indexOf(',') + 1)));
-		return a;
-	}
-
-	/**
-	 * Save the current data to default file (name "takennames.txt").
-	 */
-	public void save() {
-		File file = new File(defaultFileName);
-		try {
-			PrintWriter pw = new PrintWriter(file);
-			for (Account a : getNames())
-				pw.println(a.toString());
-			pw.close();
-		} catch (FileNotFoundException e) {
-			throw new IllegalStateException("Could not create the " + defaultFileName + " file at: " + file.getAbsolutePath());
-		}
-	}
-
-	public void clear() {
-		File file = new File(defaultFileName);
-		if (!file.exists())
-			try {
-				PrintWriter pw = new PrintWriter(file);
-				pw.print("");
-				pw.close();
-			} catch (FileNotFoundException e) {
-				throw new IllegalStateException("Could not create " + defaultFileName + " at path: " + file.getAbsolutePath());
-			}
-		try {
-			PrintWriter pw = new PrintWriter(file);
-			pw.print("");
-			pw.close();
-		} catch (FileNotFoundException e) {
-			throw new IllegalStateException("Wasn't able to write to " + defaultFileName + " at path: " + file.getAbsolutePath());
-		}
-
+	@Override
+	public void clear(String path) {
+		users.clear(path);
 	}
 
 	public static void main(String[] args) {
-		TakenNames tn = new TakenNames(20);
-		tn.load();
-		tn.run(1, 200);
-		tn.save();
+		TakenNames tn = new TakenNames(100);
+		tn.load(null);
+		tn.run();
+		tn.save(null);
 		System.out.println(tn.getStats());
 	}
 }
