@@ -173,6 +173,7 @@ public class UserInfo implements ISave, Iterable<Object> {
 		}
 		return true;
 	}
+	
 	@Override
 	public void load(String path) {
 		File f = getFile(path);

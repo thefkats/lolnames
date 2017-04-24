@@ -1,4 +1,4 @@
-package takennames;
+package takennames_v2;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -8,20 +8,19 @@ import java.net.URL;
 import java.text.DecimalFormat;
 
 public class TakenNames implements ISave {
-	private UserInfo users;
+	private IDLinkedList users;
 	private int threadsRunning;
 	private int threadsLimit;
 	private Stat stats;
-	private boolean saving;
+	private FileManager fm;
 
 	public static void main(String[] args) {
 		TakenNames tn = new TakenNames(100);
-		tn.load(null);
+		tn.load();
 		tn.run();
-		tn.save(null);
 		System.out.println(tn.getStats());
 	}
-	
+
 	public TakenNames() {
 		setup(1);
 	}
@@ -33,11 +32,11 @@ public class TakenNames implements ISave {
 	private void setup(int threadsLimit) {
 		if (threadsLimit < 1)
 			throw new IllegalArgumentException("TakenNames constructor must be more than 0.");
-		users = new UserInfo();
+		users = new IDLinkedList();
 		threadsRunning = 1;
 		this.threadsLimit = threadsLimit;
 		stats = new Stat();
-		saving = false;
+		fm = new FileManager("");
 	}
 
 	private class Stat {
@@ -53,38 +52,46 @@ public class TakenNames implements ISave {
 		 * Time the last run call took.
 		 */
 		public long actualTime;
+
 		public Stat() {
 			timeRunning = 0;
 			numChecked = 0;
 		}
+
 		public Stat(long timeRunning, int numChecked) {
 			this.timeRunning = timeRunning;
 			this.numChecked = numChecked;
 			actualTime = 0;
 		}
+
 		public double getRate() {
 			if (numChecked == 0)
 				return 0;
 			return (timeRunning / 1000.0) / numChecked;
 		}
+
 		public double getRealRate() {
 			if (numChecked == 0)
 				return 0;
 			return numChecked / (actualTime / 1000.0);
 		}
+
 		public double getTimePer() {
 			if (numChecked == 0)
 				return 0;
 			return numChecked / (timeRunning / 1000.0);
 		}
+
 		public String toBriefString() {
 			DecimalFormat df = new DecimalFormat("#####0.0##");
-			return "[Checked: " + numChecked + "]\t[Rate: " + df.format(getRealRate()) + " checks/second]\t[Time: " + timeFormat(actualTime)
-					+ "]\t[Total: " + timeFormat(timeRunning) + "]";
+			return "[Checked: " + numChecked + "]\t[Rate: " + df.format(getRealRate()) + " checks/second]\t[Time: "
+					+ timeFormat(actualTime) + "]\t[Total: " + timeFormat(timeRunning) + "]";
 		}
+
 		public String toString() {
-			return "Number of IDs checked: " + numChecked + "\nTime spent waiting: " + timeFormat(timeRunning) + "\nAverage rate: " + getRate()
-					+ " checks/second\nTime per check: " + getTimePer() + "s\nTime of the last run: " + timeFormat(actualTime);
+			return "Number of IDs checked: " + numChecked + "\nTime spent waiting: " + timeFormat(timeRunning)
+					+ "\nAverage rate: " + getRate() + " checks/second\nTime per check: " + getTimePer()
+					+ "s\nTime of the last run: " + timeFormat(actualTime);
 		}
 	}
 
@@ -97,7 +104,7 @@ public class TakenNames implements ISave {
 		arr[1] = arr[1] % 60;
 		arr[3] = arr[2] / 24;
 		arr[2] = arr[2] % 60;
-		String[] arrString = {"s", "m", "h", "d"};
+		String[] arrString = { "s", "m", "h", "d" };
 
 		int first = 0;
 		for (int i = arr.length - 1; i > 0; i--)
@@ -106,7 +113,8 @@ public class TakenNames implements ISave {
 		if (first != 0)
 			arr[first] = (int) arr[first];
 		DecimalFormat df = new DecimalFormat("#0.##");
-		return df.format(arr[first]) + arrString[first] + ((first == 0) ? "" : ", " + df.format(arr[first - 1]) + arrString[first - 1]);
+		return df.format(arr[first]) + arrString[first]
+				+ ((first == 0) ? "" : ", " + df.format(arr[first - 1]) + arrString[first - 1]);
 	}
 
 	/**
@@ -114,7 +122,7 @@ public class TakenNames implements ISave {
 	 * check max-range when run.
 	 */
 	public void run() {
-		run(1, 70000000);
+		run(users.size(), 70000000);
 	}
 
 	public void run(int numChecks) {
@@ -131,14 +139,13 @@ public class TakenNames implements ISave {
 	 */
 	public void run(int start, int end) {
 		long startTime = System.currentTimeMillis();
-		if (start < 1)
-			start = 1;
+		start = users.size();
 		if (start > end)
 			throw new IllegalArgumentException("Start number is greater than ending index: " + start + "," + end);
 		System.out.print("[");
 		for (int i = 0; i < (end - start) / threadsLimit; i++)
 			System.out.print(" ");
-		System.out.print("]\r ");
+		System.out.print("]\n[");
 
 		Stat curStat = new Stat(stats.timeRunning, stats.numChecked);
 		long curStatTime = System.currentTimeMillis();
@@ -151,14 +158,13 @@ public class TakenNames implements ISave {
 				System.out.println("[Number: " + i + "]\t" + curStat.toBriefString());
 				curStat.numChecked = stats.numChecked;
 				if (curStat.numChecked != 0) {
-					save(null);
+					fm.save(users.get(i - 1000, i - 1));
 					System.out.println("[Save time: " + timeFormat((System.currentTimeMillis() - curStatTime)) + "]");
 					curStatTime = System.currentTimeMillis();
 				}
 				System.out.print(" ");
 			}
-			if (!users.contains(i))
-				check(i);
+			check(i);
 			while (threadsRunning > threadsLimit)
 				try {
 					Thread.sleep(1000);
@@ -183,7 +189,7 @@ public class TakenNames implements ISave {
 	 * 
 	 * @return list of names and their ids (not repeated)
 	 */
-	public UserInfo getUsers() {
+	public IDLinkedList getUsers() {
 		return users;
 	}
 
@@ -202,9 +208,9 @@ public class TakenNames implements ISave {
 				String name;
 				if ((name = checkHelper(i)) != null)
 					if (name.length() > 16)
-						users.add(i + ",-,-1");
+						users.add(new Name(i));
 					else
-						users.add(i + "," + name + ",0");
+						users.add(new Name(name, i));
 				threadsRunning--;
 
 				stats.timeRunning += System.currentTimeMillis() - startTime;
@@ -273,22 +279,13 @@ public class TakenNames implements ISave {
 	}
 
 	@Override
-	public boolean save(String path) {
-		if (saving == true)
-			return false;
-		saving = true;
-		users.save(path);
-		saving = false;
-		return true;
+	public void save() {
+		fm.save(users.getAll());
 	}
 
 	@Override
-	public void load(String path) {
-		users.load(path);
+	public void load() {
+		fm.loadAll();
 	}
 
-	@Override
-	public void clear(String path) {
-		users.clear(path);
-	}
 }
