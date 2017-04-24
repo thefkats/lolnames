@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import takennames_v2.Name;
+
 public class TakenNames {
 
 	public static void main(String[] args) {
@@ -66,22 +68,74 @@ public class TakenNames {
 	private class ThreadTracker {
 		public String name;
 		public boolean completable;
+
 		public ThreadTracker(String name, boolean completable) {
 			this.name = name;
 			this.completable = completable;
 		}
 	}
 
+	public int getThreadsRunning() {
+		int count = 0;
+		for (ThreadTracker t : threadTracker)
+			if (t.completable)
+				count++;
+		return count;
+	}
+
+	/**
+	 * Checks all names in order starting with all unchecked.
+	 */
 	public void check() {
-
+		check(1, usersArray.length);
 	}
 
+	/**
+	 * Check all unchecked id's through id number.
+	 * 
+	 * @param end
+	 *            id to check through, can not be less than 1 (exclusive)
+	 */
 	public void check(int end) {
-
+		check(1, end);
 	}
 
+	/**
+	 * Checks all unchecked id's beginning at start and finishing through end.
+	 * 
+	 * @param start
+	 *            id to start with (inclusive)
+	 * @param end
+	 *            id to end with (exclusive)
+	 */
 	public void check(int start, int end) {
+		if (start < 0)
+			throw new IllegalArgumentException("Start must be 1 or more but was: " + start);
+		if (end > usersArray.length)
+			throw new IllegalArgumentException("End must be less than the length of users (users length: "
+					+ usersArray.length + "), given end: " + end);
+		if (end < start)
+			throw new IllegalArgumentException("End must be greater than start. Was: " + end + ", start was: " + start);
+		for (int i = start; i < end; i++) {
+			while (getThreadsRunning() >= threadsLimit)
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 
+			threadTracker.add(new ThreadTracker("Checking: " + i, true));
+			(new Thread() {
+				public void run() {
+
+				}
+			}).start();
+
+		}
 	}
 
+	private void checkId(int i) {
+		Name name = new Name(Checker.check(i));
+		usersArray[name.getId()] = name;
+	}
 }
