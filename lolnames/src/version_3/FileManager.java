@@ -10,14 +10,14 @@ import java.util.Scanner;
 public class FileManager {
 
 	public static void main(String[] args) {
-		System.out.println(true == false);
-	}
-	
-	private String dir = "takennames/";
-	private TakenNames takennames;
-	
-	public FileManager() {
 
+	}
+
+	private String dir = "takennames/";
+	private TakenNames takenNames;
+
+	public FileManager(TakenNames tn) {
+		takenNames = tn;
 	}
 
 	public void load() {
@@ -25,7 +25,7 @@ public class FileManager {
 	}
 
 	public void load(int i) {
-		takennames.add(load(new File(dir + i)));
+		takenNames.set(load(new File(dir + i)));
 	}
 
 	private List<Name> load(File file) {
