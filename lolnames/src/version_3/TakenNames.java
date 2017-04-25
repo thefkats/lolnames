@@ -90,8 +90,9 @@ public class TakenNames {
 	public int getThreadsRunning() {
 		int count = 0;
 		for (ThreadTracker t : threadTracker)
-			if (t.completable)
+			if (t.completable) {
 				count++;
+			}
 		return count;
 	}
 
@@ -147,7 +148,6 @@ public class TakenNames {
 			public void run() {
 				Name name = new Name(Checker.check(i));
 				usersArray[name.getId()] = name;
-				System.out.println(getThreadsRunning());
 				threadTracker.remove(new ThreadTracker("Checking: " + i, true));
 				System.out.println(getThreadsRunning());
 			}
