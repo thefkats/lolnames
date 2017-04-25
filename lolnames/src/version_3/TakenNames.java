@@ -8,7 +8,7 @@ public class TakenNames {
 
 	public static void main(String[] args) {
 		TakenNames tn = new TakenNames(100);
-		tn.check(1005);
+		tn.check();
 		System.exit(0);
 	}
 
@@ -109,6 +109,9 @@ public class TakenNames {
 	 * Checks all names in order starting with all unchecked.
 	 */
 	public void check() {
+		int start = 1;
+		while (usersArray[start].isSaved())
+			start++;
 		check(1, usersArray.length);
 	}
 
@@ -147,7 +150,8 @@ public class TakenNames {
 				}
 			if (i % 100 == 0)
 				System.out.println("Checking: " + (i / 100));
-			threadTracker.add(new ThreadTracker("Checking: " + i, true));
+			if (!threadTracker.add(new ThreadTracker("Checking: " + i, true)))
+				throw new IllegalStateException("Couldn't add threadTracker...");
 			usersArray[i] = null;
 			checkId(i);
 		}
@@ -170,8 +174,11 @@ public class TakenNames {
 			public void run() {
 				Name name = new Name(Checker.check(i));
 				usersArray[name.getId()] = name;
-				if (threadTracker.indexOf(new ThreadTracker("Checking: " + i, true)) == -1)
+				if (threadTracker.indexOf(new ThreadTracker("Checking: " + i, true)) == -1) {
+					for (ThreadTracker t : threadTracker)
+						System.out.print(t.name + ", ");
 					throw new IllegalStateException("Somehow tracker was not created for thread...");
+				}
 				threadTracker.remove(threadTracker.indexOf(new ThreadTracker("Checking: " + i, true)));
 			}
 		}).start();

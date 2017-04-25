@@ -105,7 +105,7 @@ public class FileManager {
 		int index = 0;
 		ArrayList<Name> names = new ArrayList<Name>();
 		for (int i = 0; i < 1000; i++) {
-			int loc1 = getIndexOfId(i, arr1);
+			int loc1 = getIndexOfId((arr1.get(0).getId() / 1000) * 1000 + i, arr1);
 			int loc2 = getIndexOfId(i, arr2);
 			if (loc1 == -1)
 				if (loc2 == -1)
