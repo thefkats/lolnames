@@ -8,7 +8,13 @@ public class Name implements Comparable<Name> {
 	private boolean saved;
 
 	public Name(String info) {
-
+		String[] parts = info.split(",");
+		if (parts.length == 2)
+			setup(Integer.parseInt(parts[0].trim()), parts[1].trim(), -1, -1, false);
+		else if (parts.length == 3)
+			setup(Integer.parseInt(parts[0].trim()), parts[1].trim(), Long.parseLong(parts[2].trim()), -1, false);
+		else if (parts.length == 4)
+			setup(Integer.parseInt(parts[0].trim()), parts[1].trim(), Long.parseLong(parts[2].trim()), Long.parseLong(parts[3].trim()), true);
 	}
 
 	public Name(int id) {

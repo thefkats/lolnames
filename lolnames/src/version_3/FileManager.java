@@ -10,22 +10,27 @@ import java.util.Scanner;
 public class FileManager {
 
 	public static void main(String[] args) {
-
+		TakenNames tn = new TakenNames();
 	}
 
 	private String dir = "takennames/";
-	private TakenNames takenNames;
 
-	public FileManager(TakenNames tn) {
-		takenNames = tn;
+	public FileManager() {
+		File directory = new File(dir);
+		if (!directory.exists() || !directory.isDirectory())
+			directory.mkdirs();
 	}
 
-	public void load() {
-
+	public List<Name> load() {
+		ArrayList<Name> names = new ArrayList<Name>();
+		File root = new File(dir);
+		for (File f : root.listFiles())
+			names.addAll(load(f));
+		return names;
 	}
 
-	public void load(int i) {
-		takenNames.set(load(new File(dir + i)));
+	public List<Name> load(int i) {
+		return (load(new File(dir + i)));
 	}
 
 	private List<Name> load(File file) {
@@ -41,7 +46,23 @@ public class FileManager {
 		return names;
 	}
 
-	public void save(File file, List<Name> names) {
+	public void save(List<Name> names) {
+		if (names == null || names.isEmpty())
+			throw new IllegalArgumentException("List names was null or empty.");
+		ArrayList<Name> toAdd = new ArrayList<Name>();
+		int cur = names.get(0).getId() / 1000;
+		for (Name name : names) {
+			if (name.getId() == cur)
+				toAdd.add(name);
+			else {
+				save(new File(dir + cur), toAdd);
+				toAdd = new ArrayList<Name>();
+				cur++;
+			}
+		}
+	}
+
+	private void save(File file, List<Name> names) {
 		try {
 			// Could be more efficient if names and oldnames were arrays, but
 			// would have to implement own methods?

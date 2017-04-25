@@ -8,7 +8,8 @@ import java.net.URL;
 
 public class Checker {
 	private static long maxWaitTimeMs = 60000; // 60s wait time before throwing
-												// an exception.
+	// an exception.
+	
 	public static String check(int i) {
 		try {
 			String url = "http://www.lolking.net/summoner/na/" + i;
@@ -50,7 +51,7 @@ public class Checker {
 					}
 					in.close();
 					inputLine = inputLine.substring(inputLine.indexOf("<title>") + 7);
-					return inputLine.substring(0, inputLine.indexOf('-')).trim();
+					return i + "," + inputLine.substring(0, inputLine.indexOf('-')).trim();
 				} catch (Exception e) {
 					try {
 						Thread.sleep(1000);
