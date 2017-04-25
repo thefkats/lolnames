@@ -11,6 +11,8 @@ public class Checker {
 	// an exception.
 	
 	public static String check(int i) {
+		if (i == 0)
+			return "0,-";
 		try {
 			String url = "http://www.lolking.net/summoner/na/" + i;
 			URL obj = new URL(url);

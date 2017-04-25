@@ -14,7 +14,8 @@ public class Name implements Comparable<Name> {
 		else if (parts.length == 3)
 			setup(Integer.parseInt(parts[0].trim()), parts[1].trim(), Long.parseLong(parts[2].trim()), -1, false);
 		else if (parts.length == 4)
-			setup(Integer.parseInt(parts[0].trim()), parts[1].trim(), Long.parseLong(parts[2].trim()), Long.parseLong(parts[3].trim()), true);
+			setup(Integer.parseInt(parts[0].trim()), parts[1].trim(), Long.parseLong(parts[2].trim()),
+					Long.parseLong(parts[3].trim()), true);
 	}
 
 	public Name(int id) {
@@ -31,7 +32,7 @@ public class Name implements Comparable<Name> {
 
 	private void setup(int id, String uname, long lastActive, long lastChecked, boolean saved) {
 		this.id = id;
-		setUname(uname);
+		setUname(uname.equals("-") ? null : uname);
 		setLastActive(lastActive);
 		setLastChecked(lastChecked);
 		setSaved(saved);
@@ -40,21 +41,27 @@ public class Name implements Comparable<Name> {
 	public int getId() {
 		return id;
 	}
+
 	public String getUname() {
 		return uname;
 	}
+
 	public void setUname(String uname) {
 		this.uname = uname;
 	}
+
 	public long getLastActive() {
 		return lastActive;
 	}
+
 	public void setLastActive(long lastActive) {
 		this.lastActive = lastActive;
 	}
+
 	public long getLastChecked() {
 		return lastChecked;
 	}
+
 	public void setLastChecked(long lastChecked) {
 		this.lastChecked = lastChecked;
 	}
@@ -62,6 +69,7 @@ public class Name implements Comparable<Name> {
 	public boolean isSaved() {
 		return saved;
 	}
+
 	public void setSaved(boolean saved) {
 		this.saved = saved;
 	}
@@ -70,6 +78,7 @@ public class Name implements Comparable<Name> {
 	public String toString() {
 		return id + "," + (uname == null ? "-" : uname) + "," + lastActive + "," + lastChecked;
 	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (o == null || o.getClass() != this.getClass())
@@ -77,6 +86,7 @@ public class Name implements Comparable<Name> {
 		Name n = (Name) o;
 		return n.getId() == id && n.isSaved() == saved;
 	}
+
 	@Override
 	public int compareTo(Name o) {
 		if (o == null)

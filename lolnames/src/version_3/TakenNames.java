@@ -7,8 +7,9 @@ import java.util.List;
 public class TakenNames {
 
 	public static void main(String[] args) {
-		TakenNames tn = new TakenNames();
-		tn.check(1001);
+		TakenNames tn = new TakenNames(100);
+		tn.check(1005);
+		System.exit(0);
 	}
 
 	private Name[] usersArray;
@@ -62,7 +63,13 @@ public class TakenNames {
 	}
 
 	public List<Name> get() {
-		return Arrays.asList(usersArray);
+		ArrayList<Name> names = new ArrayList<Name>();
+		for (Name name : usersArray) {
+			if (name == null)
+				break;
+			names.add(name);
+		}
+		return names;
 	}
 
 	public Name[] getArray() {
@@ -83,16 +90,18 @@ public class TakenNames {
 			if (o == null || o.getClass() != this.getClass())
 				return false;
 			ThreadTracker t = (ThreadTracker) o;
-			return !t.name.equals(name) || t.completable != completable;
+			return t.name.equals(name) && t.completable == completable;
 		}
 	}
 
 	public int getThreadsRunning() {
 		int count = 0;
-		for (ThreadTracker t : threadTracker)
-			if (t.completable) {
-				count++;
-			}
+		ArrayList<ThreadTracker> tempArray = new ArrayList<ThreadTracker>(threadTracker);
+		if (tempArray.size() != 0)
+			for (ThreadTracker t : tempArray)
+				if (t != null)
+					if (t.completable)
+						count++;
 		return count;
 	}
 
@@ -110,7 +119,7 @@ public class TakenNames {
 	 *            id to check through, can not be less than 1 (exclusive)
 	 */
 	public void check(int end) {
-		check(1, end);
+		check(0, end);
 	}
 
 	/**
@@ -125,8 +134,8 @@ public class TakenNames {
 		if (start < 0)
 			throw new IllegalArgumentException("Start must be 1 or more but was: " + start);
 		if (end > usersArray.length)
-			throw new IllegalArgumentException(
-					"End must be less than the length of users (users length: " + usersArray.length + "), given end: " + end);
+			throw new IllegalArgumentException("End must be less than the length of users (users length: "
+					+ usersArray.length + "), given end: " + end);
 		if (end < start)
 			throw new IllegalArgumentException("End must be greater than start. Was: " + end + ", start was: " + start);
 		for (int i = start; i < end; i++) {
@@ -136,11 +145,24 @@ public class TakenNames {
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-			System.out.println("Checking: " + i);
-
+			if (i % 100 == 0)
+				System.out.println("Checking: " + (i / 100));
 			threadTracker.add(new ThreadTracker("Checking: " + i, true));
+			usersArray[i] = null;
 			checkId(i);
 		}
+
+		while (getThreadsRunning() != 0) {
+			System.out.println(getThreadsRunning() + " left...");
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		System.out.println("Saving...");
+		fm.save(get());
+		saving = false;
 	}
 
 	private void checkId(int i) {
@@ -148,14 +170,16 @@ public class TakenNames {
 			public void run() {
 				Name name = new Name(Checker.check(i));
 				usersArray[name.getId()] = name;
-				threadTracker.remove(new ThreadTracker("Checking: " + i, true));
-				System.out.println(getThreadsRunning());
+				if (threadTracker.indexOf(new ThreadTracker("Checking: " + i, true)) == -1)
+					throw new IllegalStateException("Somehow tracker was not created for thread...");
+				threadTracker.remove(threadTracker.indexOf(new ThreadTracker("Checking: " + i, true)));
 			}
 		}).start();
 	}
 
 	public void saveThread(boolean on) {
 		saving = on;
+		saveThread();
 	}
 
 	private void saveThread() {
@@ -163,14 +187,22 @@ public class TakenNames {
 			public void run() {
 				int toSave = 0;
 				while (saving) {
-					boolean allDone = false;
-					for (int i = toSave * 1000; i < (toSave + 1) * 1000; i++)
-						if (usersArray[i] == null) {
-							allDone = false;
-							break;
-						} else if (!usersArray[i].isSaved())
-							allDone = true;
+					boolean allDone = (usersArray.length < (toSave + 1) * 1000) ? false : true;
 					if (allDone) {
+						boolean allSaved = true;
+						for (int i = toSave * 1000; i < (toSave + 1) * 1000; i++)
+							if (usersArray[i] == null) {
+								allDone = false;
+								break;
+							} else if (!usersArray[i].isSaved())
+								allSaved = false;
+						if (allDone && allSaved) {
+							allDone = false;
+							toSave++;
+						}
+					}
+					if (allDone) {
+						System.out.println("Save point: " + toSave);
 						ArrayList<Name> names = new ArrayList<Name>();
 						for (int i = toSave * 1000; i < (toSave + 1) * 1000; i++)
 							names.add(usersArray[i]);
@@ -187,5 +219,15 @@ public class TakenNames {
 			}
 		}).start();
 		threadTracker.remove(new ThreadTracker("save", false));
+	}
+
+	private class Stat {
+		public int count;
+		public long timeTaken;
+
+		public Stat() {
+			count = 0;
+			timeTaken = 0;
+		}
 	}
 }
