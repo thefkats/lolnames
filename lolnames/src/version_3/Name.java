@@ -9,7 +9,9 @@ public class Name implements Comparable<Name> {
 
 	public Name(String info) {
 		String[] parts = info.split(",");
-		if (parts.length == 2)
+		if (parts.length == 1)
+			setup(-1, parts[0].trim(), -1, -1, false);
+		else if (parts.length == 2)
 			setup(Integer.parseInt(parts[0].trim()), parts[1].trim(), -1, -1, false);
 		else if (parts.length == 3)
 			setup(Integer.parseInt(parts[0].trim()), parts[1].trim(), Long.parseLong(parts[2].trim()), -1, false);
@@ -28,6 +30,12 @@ public class Name implements Comparable<Name> {
 
 	public Name(int id, String uname, long lastActive, long lastChecked, boolean saved) {
 		setup(id, uname, lastActive, lastChecked, saved);
+	}
+
+	public Name(Name name1, Name name2) {
+		setup(Math.max(name1.getId(), name2.getId()), name1.getUname() == null ? name2.getUname() : name1.getUname(),
+				Math.max(name1.getLastActive(), name2.getLastActive()),
+				Math.max(name1.getLastChecked(), name2.getLastChecked()), true);
 	}
 
 	private void setup(int id, String uname, long lastActive, long lastChecked, boolean saved) {

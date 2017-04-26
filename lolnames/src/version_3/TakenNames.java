@@ -46,6 +46,12 @@ public class TakenNames {
 		this.threadsLimit = threadsLimit;
 		fm = new FileManager();
 		set(fm.load());
+
+		(new Thread() {
+			public void run() {
+
+			}
+		}).start();
 	}
 
 	public void set(Name name) {
@@ -149,6 +155,7 @@ public class TakenNames {
 					+ usersArray.length + "), given end: " + end);
 		if (end < start)
 			throw new IllegalArgumentException("End must be greater than start. Was: " + end + ", start was: " + start);
+
 		saveThread(false);
 		saveThread(true, (start % 1000 == 0) ? start / 1000 : start / 1000 + 1);
 
@@ -167,6 +174,9 @@ public class TakenNames {
 				usersArray[i] = null;
 				checkId(i);
 			}
+
+			if (i > 6000 && i % 1000 == 0)
+				fm.save(get(i - 1000 * 5, i - 1000));
 		}
 
 		while (getThreadsRunning() != 0) {
@@ -243,11 +253,12 @@ public class TakenNames {
 							}
 						}
 						try {
-						for (ThreadTracker t : threadTracker) {
-							threadTracker.remove(t);
-						}
+							for (ThreadTracker t : threadTracker) {
+								threadTracker.remove(t);
+							}
 						} catch (Exception e) {
-							// do nothing - this is for concurentmodificationexception
+							// do nothing - this is for
+							// concurentmodificationexception
 						}
 						toSave++;
 					}
