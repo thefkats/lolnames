@@ -7,7 +7,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 public class Checker {
-	private static long maxWaitTimeMs = 60000; // 60s wait time before throwing
+	private static long maxWaitTimeMs = 300000; // 60s wait time before throwing
 	// an exception.
 	
 	public static String check(int i) {

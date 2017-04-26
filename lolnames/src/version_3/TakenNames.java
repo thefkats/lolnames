@@ -7,8 +7,8 @@ import java.util.List;
 public class TakenNames {
 
 	public static void main(String[] args) {
-		TakenNames tn = new TakenNames(100);
-		tn.check();
+		TakenNames tn = new TakenNames(500);
+		tn.check(1000000, 2000000);
 		System.exit(0);
 	}
 
@@ -149,6 +149,9 @@ public class TakenNames {
 					+ usersArray.length + "), given end: " + end);
 		if (end < start)
 			throw new IllegalArgumentException("End must be greater than start. Was: " + end + ", start was: " + start);
+		saveThread(false);
+		saveThread(true, (start % 1000 == 0) ? start / 1000 : start / 1000 + 1);
+
 		for (int i = start; i < end; i++) {
 			if (usersArray[i] == null || !usersArray[i].isSaved() || usersArray[i].getUname() == null) {
 				while (getThreadsRunning() >= threadsLimit)
@@ -197,13 +200,18 @@ public class TakenNames {
 
 	public void saveThread(boolean on) {
 		saving = on;
-		saveThread();
+		saveThread(0);
 	}
 
-	private void saveThread() {
+	public void saveThread(boolean on, int start) {
+		saving = on;
+		saveThread(start);
+	}
+
+	private void saveThread(int start) {
 		(new Thread() {
 			public void run() {
-				int toSave = 0;
+				int toSave = start;
 				while (saving) {
 					boolean allDone = (usersArray.length < (toSave + 1) * 1000) ? false : true;
 					if (allDone) {
@@ -228,12 +236,18 @@ public class TakenNames {
 
 						ArrayList<ThreadTracker> toRemove = new ArrayList<ThreadTracker>();
 						for (ThreadTracker t : threadTracker) {
-							int id = Integer.parseInt(t.name.substring(10).trim());
-							if (id / 1000 == toSave)
-								toRemove.add(t);
+							if (t.name.length() > 10) {
+								int id = Integer.parseInt(t.name.substring(10).trim());
+								if (id / 1000 == toSave)
+									toRemove.add(t);
+							}
 						}
+						try {
 						for (ThreadTracker t : threadTracker) {
 							threadTracker.remove(t);
+						}
+						} catch (Exception e) {
+							// do nothing - this is for concurentmodificationexception
 						}
 						toSave++;
 					}
