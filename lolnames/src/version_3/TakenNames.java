@@ -63,12 +63,20 @@ public class TakenNames {
 	}
 
 	public List<Name> get() {
+		// TODO convert this to the get(int, int)
 		ArrayList<Name> names = new ArrayList<Name>();
 		for (Name name : usersArray) {
 			if (name == null)
 				break;
 			names.add(name);
 		}
+		return names;
+	}
+
+	public List<Name> get(int start, int end) {
+		ArrayList<Name> names = new ArrayList<Name>();
+		for (int i = start; i < end; i++)
+			names.add(usersArray[i]);
 		return names;
 	}
 
@@ -109,10 +117,10 @@ public class TakenNames {
 	 * Checks all names in order starting with all unchecked.
 	 */
 	public void check() {
-		int start = 1;
-		while (usersArray[start].isSaved())
+		int start = 0;
+		while (usersArray[start] != null && usersArray[start].isSaved())
 			start++;
-		check(1, usersArray.length);
+		check(start, usersArray.length);
 	}
 
 	/**
@@ -142,22 +150,29 @@ public class TakenNames {
 		if (end < start)
 			throw new IllegalArgumentException("End must be greater than start. Was: " + end + ", start was: " + start);
 		for (int i = start; i < end; i++) {
-			while (getThreadsRunning() >= threadsLimit)
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			if (i % 100 == 0)
-				System.out.println("Checking: " + (i / 100));
-			if (!threadTracker.add(new ThreadTracker("Checking: " + i, true)))
-				throw new IllegalStateException("Couldn't add threadTracker...");
-			usersArray[i] = null;
-			checkId(i);
+			if (usersArray[i] == null || !usersArray[i].isSaved() || usersArray[i].getUname() == null) {
+				while (getThreadsRunning() >= threadsLimit)
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				if (i % 100 == 0)
+					System.out.println("Checking: " + (i / 1000) + "." + (i % 1000 / 100));
+				if (!threadTracker.add(new ThreadTracker("Checking: " + i, true)))
+					throw new IllegalStateException("Couldn't add threadTracker...");
+				usersArray[i] = null;
+				checkId(i);
+			}
 		}
 
 		while (getThreadsRunning() != 0) {
-			System.out.println(getThreadsRunning() + " left...");
+			System.out.print(getThreadsRunning() + " left... ");
+			if (getThreadsRunning() < 10)
+				for (ThreadTracker t : threadTracker)
+					if (t.completable)
+						System.out.print(t.name + ", ");
+			System.out.println();
 			try {
 				Thread.sleep(5000);
 			} catch (InterruptedException e) {
@@ -165,7 +180,7 @@ public class TakenNames {
 			}
 		}
 		System.out.println("Saving...");
-		fm.save(get());
+		fm.save(get(start, end));
 		saving = false;
 	}
 
@@ -174,12 +189,8 @@ public class TakenNames {
 			public void run() {
 				Name name = new Name(Checker.check(i));
 				usersArray[name.getId()] = name;
-				if (threadTracker.indexOf(new ThreadTracker("Checking: " + i, true)) == -1) {
-					for (ThreadTracker t : threadTracker)
-						System.out.print(t.name + ", ");
-					throw new IllegalStateException("Somehow tracker was not created for thread...");
-				}
-				threadTracker.remove(threadTracker.indexOf(new ThreadTracker("Checking: " + i, true)));
+				if (threadTracker.indexOf(new ThreadTracker("Checking: " + i, true)) != -1)
+					threadTracker.remove(threadTracker.indexOf(new ThreadTracker("Checking: " + i, true)));
 			}
 		}).start();
 	}
@@ -214,6 +225,16 @@ public class TakenNames {
 						for (int i = toSave * 1000; i < (toSave + 1) * 1000; i++)
 							names.add(usersArray[i]);
 						fm.save(names);
+
+						ArrayList<ThreadTracker> toRemove = new ArrayList<ThreadTracker>();
+						for (ThreadTracker t : threadTracker) {
+							int id = Integer.parseInt(t.name.substring(10).trim());
+							if (id / 1000 == toSave)
+								toRemove.add(t);
+						}
+						for (ThreadTracker t : threadTracker) {
+							threadTracker.remove(t);
+						}
 						toSave++;
 					}
 

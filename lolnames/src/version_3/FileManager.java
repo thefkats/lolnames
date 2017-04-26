@@ -16,7 +16,7 @@ public class FileManager {
 			names.add(name);
 		}
 		FileManager fm = new FileManager();
-		fm.save(names);
+//		fm.save(names);
 		// TakenNames tn = new TakenNames();
 	}
 
